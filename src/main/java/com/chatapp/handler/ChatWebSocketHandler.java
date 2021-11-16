@@ -3,6 +3,7 @@ package com.chatapp.handler;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;
+import org.springframework.integration.channel.FluxMessageChannel;
 import org.springframework.integration.dsl.IntegrationFlow;
 import org.springframework.integration.dsl.IntegrationFlows;
 import org.springframework.integration.dsl.context.IntegrationFlowContext;
@@ -22,6 +23,8 @@ public class ChatWebSocketHandler implements WebSocketHandler {
 
     private final IntegrationFlowContext integrationFlowContext;
 
+    private final FluxMessageChannel fluxMessageChannel;
+
     @Override
     public Mono<Void> handle(WebSocketSession session) {
         Flux<Message<String>> input = session.receive()
@@ -29,6 +32,7 @@ public class ChatWebSocketHandler implements WebSocketHandler {
                         .build());
 
         Publisher<Message<WebSocketMessage>> messagePublisher = IntegrationFlows.from(input)
+                .channel(fluxMessageChannel)
                 .<String> handle((p, h) -> ((WebSocketSession) h.get("webSocketSession")).textMessage(p))
                 .toReactivePublisher();
 
