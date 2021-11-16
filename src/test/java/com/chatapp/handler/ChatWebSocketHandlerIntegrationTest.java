@@ -49,7 +49,7 @@ class ChatWebSocketHandlerIntegrationTest {
                         .then())
                 .subscribe();
 
-        String expected = " " + TEST_PAYLOAD;
+        String expected = "Echo " + TEST_PAYLOAD;
         StepVerifier.create(sink.asMono()).thenConsumeWhile(value -> value.equals(expected)).verifyComplete();
 
     }
