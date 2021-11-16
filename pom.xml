@@ -15,6 +15,7 @@
 	<description>Demo project for Spring Boot</description>
 	<properties>
 		<java.version>11</java.version>
+		<formatter-maven-plugin.version>2.13.0</formatter-maven-plugin.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -65,6 +66,23 @@
 						</exclude>
 					</excludes>
 				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>net.revelc.code.formatter</groupId>
+				<artifactId>formatter-maven-plugin</artifactId>
+				<version>${formatter-maven-plugin.version}</version>
+				<executions>
+					<execution>
+						<id>customFormattingExecution</id>
+						<configuration>
+							<compilerSource>${java.version}</compilerSource>
+							<compilerCompliance>${java.version}</compilerCompliance>
+							<compilerTargetPlatform>${java.version}</compilerTargetPlatform>
+							<configFile>src/main/resources/java-google-style.xml</configFile>
+							<lineEnding>LF</lineEnding>
+						</configuration>
+					</execution>
+				</executions>
 			</plugin>
 		</plugins>
 	</build>
