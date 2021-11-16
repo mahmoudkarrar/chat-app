@@ -6,6 +6,7 @@ import com.chatapp.model.EventType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -43,7 +44,8 @@ class ChatWebSocketHandlerIntegrationTest {
     private ObjectMapper objectMapper = new ObjectMapper();
 
     @Test
-    void shouldHandleRequest() {
+    @DisplayName("test - send 1 message to the server /chat endpoint. Server should broadcast the message to the registered clients")
+    void shouldEchoTheMessageToTheClient() {
         WebSocketClient client = new ReactorNettyWebSocketClient();
 
         Sinks.One<String> sink = Sinks.one();
@@ -60,7 +62,6 @@ class ChatWebSocketHandlerIntegrationTest {
         StepVerifier.create(sink.asMono())
                 .thenConsumeWhile(value -> value.equals(chatMsg))
                 .verifyComplete();
-
     }
 
     @SneakyThrows
@@ -73,7 +74,8 @@ class ChatWebSocketHandlerIntegrationTest {
         return objectMapper.readValue(eventString, Event.class);
     }
     @Test
-    void shouldBroadcastAllMessagesToTheClient() {
+    @DisplayName("test - send 4 messages to the server /chat endpoint. Server should broadcast the message to the registered clients")
+    void shouldBroadcastAllSentMessagesToTheClient() {
         //clients
         WebSocketClient client = new ReactorNettyWebSocketClient();
 
@@ -98,8 +100,6 @@ class ChatWebSocketHandlerIntegrationTest {
                 .expectNext(CHAT_MSG_CONTENT + 3)
                 .expectNext(CHAT_MSG_CONTENT + 4)
                 .verifyComplete();
-
-
     }
 
 }
