@@ -15,5 +15,4 @@ public class WebSocketConfig {
         return new SimpleUrlHandlerMapping(Map.of("/chat", webSocketHandler), -1);
     }
 
-
 }

@@ -14,7 +14,11 @@ public class ChatWebSocketHandler implements WebSocketHandler {
     @Override
     public Mono<Void> handle(WebSocketSession session) {
         Flux<WebSocketMessage> output = session.receive()
+<<<<<<< HEAD
                 .map(value -> session.textMessage("Echo " + value));
+=======
+                .map(value -> session.textMessage("Echo " + value.getPayloadAsText()));
+>>>>>>> Feature-test-echo-message
         return session.send(output);
     }
 }

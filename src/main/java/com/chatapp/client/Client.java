@@ -14,6 +14,7 @@ public class Client {
     public static void main(String[] args) {
 
         WebSocketClient client = new ReactorNettyWebSocketClient();
+<<<<<<< HEAD
         client.execute(
                         URI.create("ws://localhost:8080/chat"),
                         session -> session.send(
@@ -22,6 +23,11 @@ public class Client {
                                         .map(WebSocketMessage::getPayloadAsText)
                                         .log())
                                 .then())
+=======
+        client.execute(URI.create("ws://localhost:8080/chat"),
+                session -> session.send(Mono.just(session.textMessage("event-spring-reactive-client-websocket")))
+                        .thenMany(session.receive().map(WebSocketMessage::getPayloadAsText).log()).then())
+>>>>>>> Feature-test-echo-message
                 .block(Duration.ofSeconds(10L));
     }
 }
