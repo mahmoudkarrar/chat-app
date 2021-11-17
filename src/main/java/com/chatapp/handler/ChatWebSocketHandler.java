@@ -15,6 +15,7 @@ import org.springframework.web.reactive.socket.WebSocketMessage;
 import org.springframework.web.reactive.socket.WebSocketSession;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.Sinks;
 
 @Slf4j
 @Component
@@ -24,12 +25,16 @@ public class ChatWebSocketHandler implements WebSocketHandler {
     private final IntegrationFlowContext integrationFlowContext;
 
     private final FluxMessageChannel fluxMessageChannel;
+    private final Sinks.Many<String> chatHistory;
 
     @Override
     public Mono<Void> handle(WebSocketSession session) {
         Flux<Message<String>> input = session.receive()
-                .map(msg -> MessageBuilder.withPayload(msg.getPayloadAsText()).setHeader("webSocketSession", session)
-                        .build());
+                .map(msg -> {
+                    chatHistory.tryEmitNext(msg.getPayloadAsText());
+                    return MessageBuilder.withPayload(msg.getPayloadAsText()).setHeader("webSocketSession", session)
+                            .build();
+                });
 
         Publisher<Message<WebSocketMessage>> messagePublisher = IntegrationFlows.from(input)
                 .channel(fluxMessageChannel)
@@ -41,8 +46,6 @@ public class ChatWebSocketHandler implements WebSocketHandler {
 
         Flux<WebSocketMessage> output = Flux.from(messagePublisher).map(Message::getPayload);
 
-        return session.send(output.doFinally(s -> {
-            flowRegistration.destroy();
-        }));
+        return session.send(output.doFinally(s -> flowRegistration.destroy()));
     }
 }
