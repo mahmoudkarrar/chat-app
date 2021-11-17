@@ -1,22 +1,22 @@
-package com.chatapp.handler;
+package com.chatapp.controller;
 
 import com.chatapp.ChatAppApplication;
-import com.chatapp.TestHelper;
 import com.chatapp.model.Event;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.socket.WebSocketMessage;
 import org.springframework.web.reactive.socket.client.ReactorNettyWebSocketClient;
 import org.springframework.web.reactive.socket.client.WebSocketClient;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 import reactor.test.StepVerifier;
 
@@ -31,36 +31,15 @@ import static java.lang.String.format;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Import(ChatAppApplication.class)
 @Slf4j
-class ChatWebSocketHandlerIntegrationTest {
-
+class ChatRestControllerIntegrationTest {
     @LocalServerPort
     private String port;
 
-    @Test
-    @DisplayName("test - send 1 message to the server /chat endpoint. Server should broadcast the message to the registered clients")
-    void shouldEchoTheMessageToTheClient() {
-        WebSocketClient client = new ReactorNettyWebSocketClient();
-
-        Sinks.One<String> sink = Sinks.one();
-
-        String chatMsg = eventToString(TEST_PAYLOAD);
-        client.execute(URI.create(format("ws://localhost:%s/chat", port)),
-                session -> session.send(Mono.just(session.textMessage(chatMsg)))
-                        .concatWith(
-                        session.receive().map(WebSocketMessage::getPayloadAsText).doOnNext(sink::tryEmitValue)
-                                .then())
-                        .then())
-                .subscribe();
-
-        StepVerifier.create(sink.asMono())
-                .thenConsumeWhile(value -> value.equals(chatMsg))
-                .verifyComplete();
-    }
+    @Autowired
+    private WebTestClient webTestClient;
 
     @Test
-    @DisplayName("test - send 4 messages to the server /chat endpoint. Server should broadcast the message to the registered clients")
-    void shouldBroadcastAllSentMessagesToTheClient() {
-        //clients
+    public void shouldReceiveRecentChatHistory() {
         WebSocketClient client = new ReactorNettyWebSocketClient();
 
         String msgToBeSent = eventToString(TEST_PAYLOAD);
@@ -78,12 +57,19 @@ class ChatWebSocketHandlerIntegrationTest {
                 .block(Duration.ofSeconds(1));
 
 
-        StepVerifier.create(sink.asFlux().take(count).map(TestHelper::stringToEvent).map(Event::getContent))
-                .expectNext(CHAT_MSG_CONTENT + 1)
+        Flux<Event> events = webTestClient
+                .get().uri("/chat/history")
+                .accept(MediaType.TEXT_EVENT_STREAM)
+                .exchange()
+                .expectStatus().isOk()
+                .returnResult(Event.class)
+                .getResponseBody()
+                .take(3);
+
+        StepVerifier.create(events.map(Event::getContent))
                 .expectNext(CHAT_MSG_CONTENT + 2)
                 .expectNext(CHAT_MSG_CONTENT + 3)
                 .expectNext(CHAT_MSG_CONTENT + 4)
                 .verifyComplete();
     }
-
 }
