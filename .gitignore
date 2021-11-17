@@ -30,3 +30,5 @@ out/
 !**/src/test/**/out/
 
 target
+
+.DS_Store
