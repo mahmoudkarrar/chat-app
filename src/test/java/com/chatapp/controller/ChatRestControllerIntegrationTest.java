@@ -3,6 +3,7 @@ package com.chatapp.controller;
 import com.chatapp.ChatAppApplication;
 import com.chatapp.model.Event;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,6 +40,7 @@ class ChatRestControllerIntegrationTest {
     private WebTestClient webTestClient;
 
     @Test
+    @DisplayName("GET /api/v1/chat/history 200 return a live stream of event. for later joining clients it discard messages beyond the history limit")
     public void shouldReceiveRecentChatHistory() {
         WebSocketClient client = new ReactorNettyWebSocketClient();
 
@@ -58,13 +60,12 @@ class ChatRestControllerIntegrationTest {
 
 
         Flux<Event> events = webTestClient
-                .get().uri("/chat/history")
-                .accept(MediaType.TEXT_EVENT_STREAM)
+                .get().uri("api/v1/chat/history")
+                .accept(MediaType.APPLICATION_JSON)
                 .exchange()
                 .expectStatus().isOk()
                 .returnResult(Event.class)
-                .getResponseBody()
-                .take(3);
+                .getResponseBody();
 
         StepVerifier.create(events.map(Event::getContent))
                 .expectNext(CHAT_MSG_CONTENT + 2)

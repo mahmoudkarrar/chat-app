@@ -26,8 +26,7 @@ function connect(event) {
         socket = new WebSocket("ws://localhost:8080/chat");
 
         socket.onopen = function() {
-
-            socket.send(JSON.stringify({sender: username, type: 'JOIN'}))
+            loadHistory();
 
             connectingElement.classList.add('hidden');
         };
@@ -76,9 +75,11 @@ function send(event) {
 
 
 function onMessageReceived(payload) {
-    loadHistory();
     const message = JSON.parse(payload);
+    renderMessage(message);
+}
 
+function renderMessage(message) {
     const messageElement = document.createElement('li');
 
     if(message.type === 'JOIN') {
@@ -113,7 +114,6 @@ function onMessageReceived(payload) {
     messageArea.scrollTop = messageArea.scrollHeight;
 }
 
-
 function getAvatarColor(messageSender) {
     let hash = 0;
     for (let i = 0; i < messageSender.length; i++) {
@@ -124,14 +124,22 @@ function getAvatarColor(messageSender) {
     return colors[index];
 }
 
-async function loadHistory() {
-
-    try {
-        const data = await axios.get('/chat/history/all');
-        console.log("data " +data);
-    } catch (error) {
-       console.error(error);
+ function loadHistory() {
+     axios.get('/api/v1/chat/history')
+         .then(function (response) {
+             console.log("success "+response);
+             response.data.forEach( element => {
+                 renderMessage(element)
+             });
+         })
+         .catch(function (error) {
+             console.log(error);
+         })
+         .then(function () {
+             socket.send(JSON.stringify({sender: username, type: 'JOIN'}))
+         });
     }
-}
+
+
 usernameForm.addEventListener('submit', connect, true)
 messageForm.addEventListener('submit', send, true)

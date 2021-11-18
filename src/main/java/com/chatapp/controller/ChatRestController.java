@@ -7,24 +7,19 @@ import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
 
 @RestController
 @AllArgsConstructor
+@RequestMapping("/api/v1/")
 public class ChatRestController {
 
     private final HistoryService historyService;
     private final ObjectMapper objectMapper;
 
-    @GetMapping(value = "chat/history", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<Event> getChatHistory() {
-        return historyService.getChatHistory().asFlux()
-                .map(this::toEvent)
-                .log();
-    }
-
-    @GetMapping(value = "chat/history/all", produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(value = "chat/history", produces = MediaType.APPLICATION_JSON_VALUE)
     public Flux<Event> getHistory() {
         return historyService.getChatHistory()
                 .asFlux()
