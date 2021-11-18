@@ -76,7 +76,7 @@ function send(event) {
 
 
 function onMessageReceived(payload) {
-
+    loadHistory();
     const message = JSON.parse(payload);
 
     const messageElement = document.createElement('li');
@@ -124,5 +124,14 @@ function getAvatarColor(messageSender) {
     return colors[index];
 }
 
+async function loadHistory() {
+
+    try {
+        const data = await axios.get('/chat/history/all');
+        console.log("data " +data);
+    } catch (error) {
+       console.error(error);
+    }
+}
 usernameForm.addEventListener('submit', connect, true)
 messageForm.addEventListener('submit', send, true)
