@@ -1,5 +1,6 @@
 package com.chatapp.handler;
 
+import com.chatapp.service.HistoryService;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;
@@ -15,7 +16,6 @@ import org.springframework.web.reactive.socket.WebSocketMessage;
 import org.springframework.web.reactive.socket.WebSocketSession;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.publisher.Sinks;
 
 @Slf4j
 @Component
@@ -25,13 +25,13 @@ public class ChatWebSocketHandler implements WebSocketHandler {
     private final IntegrationFlowContext integrationFlowContext;
 
     private final FluxMessageChannel fluxMessageChannel;
-    private final Sinks.Many<String> chatHistory;
+    private final HistoryService historyService;
 
     @Override
     public Mono<Void> handle(WebSocketSession session) {
         Flux<Message<String>> input = session.receive()
                 .map(msg -> {
-                    chatHistory.tryEmitNext(msg.getPayloadAsText());
+                    historyService.emitMessageToHistory(msg.getPayloadAsText());
                     return MessageBuilder.withPayload(msg.getPayloadAsText()).setHeader("webSocketSession", session)
                             .build();
                 });
