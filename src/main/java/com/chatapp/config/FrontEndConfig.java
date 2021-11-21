@@ -18,7 +18,8 @@ import static org.springframework.web.reactive.function.server.ServerResponse.ok
 public class FrontEndConfig {
     @Bean
     public RouterFunction<ServerResponse> indexRouter(@Value("classpath:/index.html") final Resource indexHtml){
-        return  route(GET("/"), request -> ok().contentType(MediaType.TEXT_HTML).bodyValue(indexHtml));
+        return  route(GET("/").or(GET("/index.html")),
+                request -> ok().contentType(MediaType.TEXT_HTML).bodyValue(indexHtml));
     }
     @Bean
     public RouterFunction<ServerResponse> cssRouter() {
