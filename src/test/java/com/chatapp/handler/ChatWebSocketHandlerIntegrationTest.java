@@ -58,6 +58,37 @@ class ChatWebSocketHandlerIntegrationTest {
     }
 
     @Test
+    void shouldMultiplexSendAndReceive() {
+        WebSocketClient client = new ReactorNettyWebSocketClient();
+
+        Sinks.Many<String> input = Sinks.many().unicast().onBackpressureBuffer();
+        Sinks.Many<String> output = Sinks.many().unicast().onBackpressureBuffer();
+
+        client.execute(URI.create(format("ws://localhost:%s/chat", port)), session -> {
+                var sender = session.send(input.asFlux()
+                        .map(session::textMessage));
+
+                var receiver = session.receive()
+                        .take(2)
+                        .map(WebSocketMessage::getPayloadAsText)
+                        .doOnNext(output::tryEmitNext)
+                    .doOnComplete(output::tryEmitComplete)
+                    .then();
+
+                 return sender.zipWith(receiver).then();
+        }).subscribe();
+
+        StepVerifier.create(output.asFlux())
+                .then(() -> input.tryEmitNext("Hello"))
+                .expectNext("Hello")
+                .then(() -> input.tryEmitNext("World"))
+                .expectNext("World")
+                .then(input::tryEmitComplete)
+                .expectComplete()
+                .verify(Duration.ofSeconds(1));
+    }
+
+    @Test
     @DisplayName("test - send 4 messages to the server /chat endpoint. Server should broadcast the message to the registered clients")
     void shouldBroadcastAllSentMessagesToTheClient() {
         //clients
@@ -66,7 +97,7 @@ class ChatWebSocketHandlerIntegrationTest {
         String msgToBeSent = eventToString(TEST_PAYLOAD);
         Sinks.Many<String> sink = Sinks.many().multicast().onBackpressureBuffer();
         int count = 4;
-        Flux<String> input = Flux.range(1, count).map(index -> msgToBeSent.replace(CHAT_MSG_CONTENT, CHAT_MSG_CONTENT+ index));
+        Flux<String> input = Flux.range(1, count).map(index -> msgToBeSent.replace(CHAT_MSG_CONTENT, CHAT_MSG_CONTENT + index));
 
         client.execute(URI.create(format("ws://localhost:%s/chat", port)),
                         session -> session.send(input.map(session::textMessage))
