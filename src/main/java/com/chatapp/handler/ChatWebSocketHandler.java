@@ -1,53 +1,50 @@
 package com.chatapp.handler;
 
-import com.chatapp.service.HistoryService;
-import lombok.AllArgsConstructor;
+import com.chatapp.model.Event;
+import com.chatapp.model.EventType;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.reactivestreams.Publisher;
-import org.springframework.integration.channel.FluxMessageChannel;
-import org.springframework.integration.dsl.IntegrationFlow;
-import org.springframework.integration.dsl.IntegrationFlows;
-import org.springframework.integration.dsl.context.IntegrationFlowContext;
-import org.springframework.integration.support.MessageBuilder;
-import org.springframework.messaging.Message;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.socket.WebSocketHandler;
 import org.springframework.web.reactive.socket.WebSocketMessage;
 import org.springframework.web.reactive.socket.WebSocketSession;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Hooks;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.Sinks;
+
+import java.util.concurrent.atomic.AtomicReference;
 
 @Slf4j
 @Component
-@AllArgsConstructor
 public class ChatWebSocketHandler implements WebSocketHandler {
 
-    private final IntegrationFlowContext integrationFlowContext;
+    private final Sinks.Many<String> chatHistory = Sinks.many().replay().limit(1000);
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
-    private final FluxMessageChannel fluxMessageChannel;
-    private final HistoryService historyService;
-
-    @Override
     public Mono<Void> handle(WebSocketSession session) {
-        Hooks.onErrorDropped(error -> log.warn("Exception happened: ", error));
-
-        Flux<Message<String>> input = session.receive()
-                .map(msg -> {
-                    historyService.emitMessageToHistory(msg.getPayloadAsText());
-                    return MessageBuilder.withPayload(msg.getPayloadAsText()).build();
-                });
-
-        Publisher<Message<WebSocketMessage>> messagePublisher = IntegrationFlows.from(input)
-                .channel(fluxMessageChannel)
-                .<String> handle((p, h) ->  session.textMessage(p))
-                .toReactivePublisher();
-
-        IntegrationFlowContext.IntegrationFlowRegistration flowRegistration = this.integrationFlowContext
-                .registration((IntegrationFlow) messagePublisher).register();
-
-        Flux<WebSocketMessage> output = Flux.from(messagePublisher).map(Message::getPayload);
-
-        return session.send(output.doFinally(s -> flowRegistration.destroy()));
+        AtomicReference<Event> lastReceivedEvent = new AtomicReference<>();
+        return session.receive()
+                .map(WebSocketMessage::getPayloadAsText)
+                .doOnNext(msg -> {
+                    lastReceivedEvent.set(toEvent(msg));
+                    chatHistory.tryEmitNext(msg);
+                })
+                .doOnComplete(() -> {
+                    if(lastReceivedEvent.get() != null) {
+                        lastReceivedEvent.get().setType(EventType.LEAVE);
+                        chatHistory.tryEmitNext(toString(lastReceivedEvent.get()));
+                    }
+                    log.info("Completed!");
+                })
+                .zipWith(session.send(chatHistory.asFlux().map(session::textMessage)))
+                .then();
+    }
+    @SneakyThrows
+    private Event toEvent(String message) {
+        return objectMapper.readValue(message, Event.class);
+    }
+    @SneakyThrows
+    private String toString(Event event) {
+        return objectMapper.writeValueAsString(event);
     }
 }
