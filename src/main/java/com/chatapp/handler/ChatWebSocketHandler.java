@@ -35,13 +35,12 @@ public class ChatWebSocketHandler implements WebSocketHandler {
         Flux<Message<String>> input = session.receive()
                 .map(msg -> {
                     historyService.emitMessageToHistory(msg.getPayloadAsText());
-                    return MessageBuilder.withPayload(msg.getPayloadAsText()).setHeader("webSocketSession", session)
-                            .build();
+                    return MessageBuilder.withPayload(msg.getPayloadAsText()).build();
                 });
 
         Publisher<Message<WebSocketMessage>> messagePublisher = IntegrationFlows.from(input)
                 .channel(fluxMessageChannel)
-                .<String> handle((p, h) -> ((WebSocketSession) h.get("webSocketSession")).textMessage(p))
+                .<String> handle((p, h) ->  session.textMessage(p))
                 .toReactivePublisher();
 
         IntegrationFlowContext.IntegrationFlowRegistration flowRegistration = this.integrationFlowContext
