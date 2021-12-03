@@ -9,7 +9,6 @@ Basic chat functions using spring-boot
 - [Dependencies](#dependencies)
 - [Why Reactive Streams](#why-reactive-streams)
 - [Basic Architecture](#basic-architecture)
-- [Configurations](#configurations)
 - [Run It](#run-it)
 - [Frontend](#frontend)
 
@@ -37,19 +36,11 @@ Contrast that to a reactive application, where the request is seen as an event b
 
 In WebFlow, WebSockets are handled by implementing WebSocketHandler. The handler is provided with a WebSocketSession every time a connection is established. A WebSocketSession represents the connection made by a single browser. It has 2 Flux streams associated with it, the `receive()` stream for incoming messages and the `send()` stream outgoing messages.
 
-To link every WebSocketSession, a global message publisher (WebfluxChannel) is used. Spring Integration Flow is used to manage sessions' subscriptions (followed the [spring guide](https://docs.spring.io/spring-integration/reference/html/web-sockets.html#websocket-dynamic-endpoints) ) 
 
 ![img.png](img.png)
 
-Since not all clients will connect at the same time, the publisher is configured to retain the up to 1000 messages and replays it to any new subscribers. For history retrieval the server exposes `GET /api/v1/chat/history` endpoint that retrieves the history of the chat to the user.
+Since not all clients will connect at the same time, the publisher is configured to retain the up to 1000 messages and replays it to any new subscribers.
 
-## Configurations
-```yaml
-chat:
-  history:
-    capacity: 1000
-```
-Configure the maximum limit for messages to be kept in the history, Older elements are discarded.
 
 ## Run It
 A shell file provided to facilitate running the app, run `./start.sh` from your terminal make sure that you have `mvn` and `docker` installed.
