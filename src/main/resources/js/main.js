@@ -28,7 +28,8 @@ const connect = (event) => {
         socket = new WebSocket("ws://localhost:8080/chat");
 
         socket.onopen = () => {
-            loadHistory();
+            //loadHistory();
+            socket.send(JSON.stringify({sender: username, type: 'JOIN'}));
             connectingElement.classList.add('hidden');
         };
 
@@ -122,11 +123,6 @@ const getAvatarColor = (hash) => {
     const index = Math.abs(hash % colors.length);
     return colors[index];
 }
-
-const loadHistory = () => axios.get('/api/v1/chat/history')
-    .then(response => response.data.forEach(element => renderMessage(element)))
-    .catch(err => console.log(err))
-    .then(() => socket.send(JSON.stringify({sender: username, type: 'JOIN'})));
 
 searchText.addEventListener('keyup', (ev) => {
     let text = ev.target.value;

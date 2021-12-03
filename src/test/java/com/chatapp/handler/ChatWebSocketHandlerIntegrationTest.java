@@ -10,6 +10,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.web.reactive.socket.WebSocketMessage;
@@ -25,12 +26,14 @@ import java.time.Duration;
 
 import static com.chatapp.TestHelper.*;
 import static java.lang.String.format;
+import static org.springframework.test.annotation.DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD;
 
 @ExtendWith(SpringExtension.class)
 @ActiveProfiles("test")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Import(ChatAppApplication.class)
 @Slf4j
+@DirtiesContext(classMode = AFTER_EACH_TEST_METHOD)
 class ChatWebSocketHandlerIntegrationTest {
 
     @LocalServerPort
