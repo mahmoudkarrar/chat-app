@@ -18,31 +18,36 @@ import java.util.concurrent.atomic.AtomicReference;
 @Component
 public class ChatWebSocketHandler implements WebSocketHandler {
 
-    private final Sinks.Many<String> chatHistory = Sinks.many().replay().limit(1000);
+    private final Sinks.Many<Event> chatHistory = Sinks.many().replay().limit(1000);
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public Mono<Void> handle(WebSocketSession session) {
         AtomicReference<Event> lastReceivedEvent = new AtomicReference<>();
         return session.receive()
                 .map(WebSocketMessage::getPayloadAsText)
-                .doOnNext(msg -> {
-                    lastReceivedEvent.set(toEvent(msg));
-                    chatHistory.tryEmitNext(msg);
+                .map(this::toEvent)
+                .doOnNext(event -> {
+                    lastReceivedEvent.set(event);
+                    chatHistory.tryEmitNext(event);
                 })
                 .doOnComplete(() -> {
                     if(lastReceivedEvent.get() != null) {
                         lastReceivedEvent.get().setType(EventType.LEAVE);
-                        chatHistory.tryEmitNext(toString(lastReceivedEvent.get()));
+                        chatHistory.tryEmitNext(lastReceivedEvent.get());
                     }
                     log.info("Completed!");
                 })
-                .zipWith(session.send(chatHistory.asFlux().map(session::textMessage)))
+                .zipWith(session.send(chatHistory.asFlux()
+                        .map(this::toString)
+                        .map(session::textMessage)))
                 .then();
     }
+
     @SneakyThrows
     private Event toEvent(String message) {
         return objectMapper.readValue(message, Event.class);
     }
+
     @SneakyThrows
     private String toString(Event event) {
         return objectMapper.writeValueAsString(event);

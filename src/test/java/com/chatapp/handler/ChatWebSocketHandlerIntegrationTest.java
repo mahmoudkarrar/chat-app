@@ -81,11 +81,13 @@ class ChatWebSocketHandlerIntegrationTest {
                  return sender.zipWith(receiver).then();
         }).subscribe();
 
+        var firstMsg = eventToString(TEST_PAYLOAD);
+        var lastMsg = eventToString(TEST_PAYLOAD_2);
         StepVerifier.create(output.asFlux())
-                .then(() -> input.tryEmitNext("Hello"))
-                .expectNext("Hello")
-                .then(() -> input.tryEmitNext("World"))
-                .expectNext("World")
+                .then(() -> input.tryEmitNext(firstMsg))
+                .expectNext(firstMsg)
+                .then(() -> input.tryEmitNext(lastMsg))
+                .expectNext(lastMsg)
                 .then(input::tryEmitComplete)
                 .expectComplete()
                 .verify(Duration.ofSeconds(1));

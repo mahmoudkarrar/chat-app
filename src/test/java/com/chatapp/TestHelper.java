@@ -11,6 +11,8 @@ public class TestHelper {
     public static final String CHAT_MSG_CONTENT = "Test Msg";
     public static final Event TEST_PAYLOAD = Event.builder().type(EventType.CHAT).content(CHAT_MSG_CONTENT)
             .sender("test").build();
+    public static final Event TEST_PAYLOAD_2 = Event.builder().type(EventType.CHAT).content(CHAT_MSG_CONTENT)
+            .sender("leaving").build();
 
 
     @SneakyThrows
