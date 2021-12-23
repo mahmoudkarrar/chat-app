@@ -1,4 +1,4 @@
-# chat-app
+# Real Time Chat App Using WebFlux, WebSockets & Javascript
 Basic chat functions using spring-boot
 
 
